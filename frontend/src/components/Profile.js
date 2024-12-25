@@ -7,7 +7,7 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [achievements, setAchievements] = useState([]); // Новый state для ачивок
+    const [achievements, setAchievements] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({ username: '', email: '', profile_photo: null });
     const navigate = useNavigate();
@@ -32,19 +32,22 @@ const Profile = () => {
             setUser(userData);
             setFormData({ username: userData.username, email: userData.email, profile_photo: null });
 
+            const fetchAchievements = async () => {
             try {
-                // Загрузка ачивок
-                const response = await fetch(`http://127.0.0.1:8000/accounts/api/user_achievements/?userid=${userData.id}`);
+                const response = await fetch(`http://127.0.0.1:8000/accounts/api/users/${user.id}/achievements/`);
                 const data = await response.json();
-                if (data.error) {
-                    setError(data.error);
+
+                if (data.achievements) {
+                    setAchievements(data.achievements); // Если массив пустой, он просто сохранится
                 } else {
-                    setAchievements(data.achievements || []); // Сохранение ачивок в state
+                    throw new Error('Achievements data is missing.');
                 }
-            } catch (err) {
-                console.error('Ошибка загрузки ачивок:', err);
-                setError('Не удалось загрузить ачивки.');
+            } catch (error) {
+                console.error(error);
+                setError('Не удалось загрузить достижения.');
             }
+        };
+
 
             setLoading(false);
         };
@@ -72,7 +75,7 @@ const Profile = () => {
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/accounts/api/users/${user.id}/edit/`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/users/${user.id}/edit/`, {
                 method: 'POST',
                 body: formDataToSend,
             });
@@ -157,7 +160,7 @@ const Profile = () => {
                             />
                             <h2>{user.username}</h2>
                             <p>Email: {user.email}</p>
-                            <button onClick={() => navigate(`/home`)}>На главную</button>
+                            <button onClick={() => navigate('/home')}>На главную</button>
                             <button onClick={() => setIsEditing(true)}>Редактировать</button>
                             <button className="logout-button" onClick={handleLogout}>Выйти</button>
                         </>

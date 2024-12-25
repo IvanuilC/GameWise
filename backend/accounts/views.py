@@ -228,7 +228,7 @@ def edit_user(request, user_id):
                     user.profile_photo = request.FILES["profile_photos"]
 
             user.save()
-
+            check_and_award_achievements(user)
             return JsonResponse(
                 {
                     "status": "success",
@@ -388,24 +388,6 @@ def check_answers(request, course_id):
     return JsonResponse({"error": "Метод не поддерживается"}, status=405)
 
 
-def get_user_achievements(request, user_id):
-    try:
-        user = User.objects.get(id=user_id)
-        achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
-        response_data = [
-            {
-                'title': ua.achievement.title,
-                'description': ua.achievement.description,
-                'image': ua.achievement.image.url if ua.achievement.image else None,
-                'date_earned': ua.date_earned,
-            }
-            for ua in achievements
-        ]
-        return JsonResponse({'achievements': response_data}, status=200)
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'User not found'}, status=404)
-
-
 # Логика проверки достижения
 def check_and_award_achievements(user):
     # 1. Первый курс
@@ -441,3 +423,24 @@ def check_and_award_achievements(user):
         if completed_forms >= 3:
             achievement = Achievement.objects.get(condition='three_courses')
             UserAchievement.objects.create(user=user, achievement=achievement)
+
+
+@csrf_exempt
+def user_achievements_view(request, user_id):
+    try:
+        user = get_object_or_404(CustomUser, id=user_id)
+        achievements = UserAchievement.objects.filter(user=user).select_related("achievement")
+        response_data = [
+            {
+                "id": ua.achievement.id,
+                "title": ua.achievement.title,
+                "description": ua.achievement.description,
+                "image": request.build_absolute_uri(ua.achievement.image.url) if ua.achievement.image else None,
+                "date_earned": ua.date_earned.isoformat(),
+            }
+            for ua in achievements
+        ]
+        return JsonResponse({"achievements": response_data}, status=200)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)
+
