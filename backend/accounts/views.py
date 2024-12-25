@@ -6,7 +6,7 @@ from django.core.files.storage import default_storage
 from .models import CustomUser, Course, Enrollment, Option, Question, QuizResult, Achievement, UserAchievement, count_user_correct_answers
 import json
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Count
+from django.db.models import F, Sum, Count
 
 
 @csrf_exempt
@@ -228,7 +228,7 @@ def edit_user(request, user_id):
                     user.profile_photo = request.FILES["profile_photos"]
 
             user.save()
-            check_and_award_achievements(user)
+            check_and_award_achievements(user)  # Проверка достижений после обновления профиля
             return JsonResponse(
                 {
                     "status": "success",
@@ -239,27 +239,17 @@ def edit_user(request, user_id):
 
         except json.JSONDecodeError:
             return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Invalid JSON payload",
-                    "status_code": 400,
-                },
-                status=400,
+                {"status": "error", "message": "Invalid JSON payload", "status_code": 400}, status=400
             )
-
         except Exception as e:
             return JsonResponse(
                 {"status": "error", "message": str(e), "status_code": 500}, status=500
             )
 
     return JsonResponse(
-        {
-            "status": "error",
-            "message": f"{request.method} method not allowed",
-            "status_code": 405,
-        },
-        status=405,
+        {"status": "error", "message": f"{request.method} method not allowed", "status_code": 405}, status=405
     )
+
 
 
 @csrf_exempt
@@ -377,6 +367,8 @@ def check_answers(request, course_id):
                 correct_answers=correct_answers,
             )
 
+            check_and_award_achievements(user)  # Проверяем достижения после завершения курса
+
             return JsonResponse({
                 "correct": correct_answers,
                 "total": total_questions,
@@ -388,41 +380,50 @@ def check_answers(request, course_id):
     return JsonResponse({"error": "Метод не поддерживается"}, status=405)
 
 
-# Логика проверки достижения
+
 def check_and_award_achievements(user):
-    # 1. Первый курс
+    # 1. Первое достижение — первый пройденный курс
     if not UserAchievement.objects.filter(user=user, achievement__condition='first_course').exists():
         if QuizResult.objects.filter(user=user).exists():
-            achievement = Achievement.objects.get(condition='first_course')
-            UserAchievement.objects.create(user=user, achievement=achievement)
+            try:
+                achievement = Achievement.objects.get(condition='first_course')
+                UserAchievement.objects.create(user=user, achievement=achievement)
+            except Achievement.DoesNotExist:
+                pass  # Достижение с таким условием не создано
 
-    # 2. Топ-1 в рейтинге
+    # 2. Достижение за топ-1 в рейтинге
     if not UserAchievement.objects.filter(user=user, achievement__condition='top_1').exists():
-        user_correct = count_user_correct_answers(user)
-        top_user = User.objects.annotate(total_correct=Count('quizresult')).order_by('-total_correct').first()
+        user_correct_answers = QuizResult.objects.filter(user=user).aggregate(total=Sum('correct_answers'))['total'] or 0
+        top_user = CustomUser.objects.annotate(total_correct=Sum('quizresult__correct_answers')).order_by('-total_correct').first()
         if top_user == user:
-            achievement = Achievement.objects.get(condition='top_1')
-            UserAchievement.objects.create(user=user, achievement=achievement)
+            try:
+                achievement = Achievement.objects.get(condition='top_1')
+                UserAchievement.objects.create(user=user, achievement=achievement)
+            except Achievement.DoesNotExist:
+                pass
 
-    # 3. Все задачи курса выполнены верно
+    # 3. Достижение за все правильные ответы в одном курсе
     if not UserAchievement.objects.filter(user=user, achievement__condition='all_correct').exists():
-        completed_courses = Question.objects.filter(
+        completed_courses = Course.objects.filter(
             questions__quizresult__user=user,
-            questions__quizresult__is_correct=True
+            questions__quizresult__correct_answers=F('questions__count')  # Все правильные ответы
         ).distinct()
-        for course_form in completed_courses:
-            total_questions = course_form.questions.count()
-            correct_answers = QuizResult.objects.filter(user=user, question__course_form=course_form, is_correct=True).count()
-            if total_questions == correct_answers:
+        if completed_courses.exists():
+            try:
                 achievement = Achievement.objects.get(condition='all_correct')
                 UserAchievement.objects.create(user=user, achievement=achievement)
+            except Achievement.DoesNotExist:
+                pass
 
-    # 4. Три курса выполнены
+    # 4. Завершение трёх курсов
     if not UserAchievement.objects.filter(user=user, achievement__condition='three_courses').exists():
-        completed_forms = QuizResult.objects.filter(user=user, is_correct=True).values('course_form').distinct().count()
-        if completed_forms >= 3:
-            achievement = Achievement.objects.get(condition='three_courses')
-            UserAchievement.objects.create(user=user, achievement=achievement)
+        completed_courses_count = QuizResult.objects.filter(user=user).values('course').distinct().count()
+        if completed_courses_count >= 3:
+            try:
+                achievement = Achievement.objects.get(condition='three_courses')
+                UserAchievement.objects.create(user=user, achievement=achievement)
+            except Achievement.DoesNotExist:
+                pass
 
 
 @csrf_exempt
@@ -443,4 +444,3 @@ def user_achievements_view(request, user_id):
         return JsonResponse({"achievements": response_data}, status=200)
     except CustomUser.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
-

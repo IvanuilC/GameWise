@@ -14,6 +14,7 @@ import Leaderboard from './components/Leaderboard';
 import CourseForm from './components/CourseForm';
 import CourseQuiz from './components/CourseQuiz';
 import CreateCourse from './components/CreateCourse';
+import Achievements from './components/Achievements';
 
 function App() {
     return (
@@ -33,6 +34,7 @@ function App() {
                     <Route path="/courses/:id/quiz" element={<CourseQuiz />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/create-course" element={<CreateCourse />} />
+                    <Route path="/achievements" element={<Achievements />} />
                 </Routes>
             </Router>
         </UserProvider>
