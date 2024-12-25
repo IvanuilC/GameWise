@@ -22,4 +22,5 @@ urlpatterns = [
     path("api/courses/<int:course_id>/add-form/", views.add_form, name="add_form"),
     path("api/courses/<int:course_id>/questions/", views.get_course_questions, name="get_course_questions"),
     path("api/courses/<int:course_id>/check-answers/", views.check_answers, name="check_answers"),
+    path('api/user/<int:user_id>/achievements/', views.get_user_achievements, name='get_user_achievements'),
 ]

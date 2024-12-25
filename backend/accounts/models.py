@@ -89,3 +89,25 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title} - {self.score}%"
+
+
+class Achievement(models.Model):
+    title = models.CharField(max_length=255)  # Название ачивки
+    description = models.TextField()  # За что выдается ачивка
+    image = models.ImageField(upload_to='achievements/', blank=True, null=True)  # Картинка
+    condition = models.CharField(max_length=255)  # Условие в виде кода (например, 'first_course', 'all_tasks_correct')
+
+
+class UserAchievement(models.Model):
+    user = models.ForeignKey(CustomUser, related_name='achievements', on_delete=models.CASCADE)
+    achievement = models.ForeignKey(Achievement, related_name='users', on_delete=models.CASCADE)
+    date_earned = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'achievement')
+
+
+# Функция для подсчета правильных ответов пользователя
+def count_user_correct_answers(user):
+    from .models import QuizResult  # Предположительно, есть таблица QuizResult
+    return QuizResult.objects.filter(user=user, is_correct=True).count()

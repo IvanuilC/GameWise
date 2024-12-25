@@ -3,10 +3,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
-from .models import CustomUser, Course, Enrollment, Option, Question, QuizResult
+from .models import CustomUser, Course, Enrollment, Option, Question, QuizResult, Achievement, UserAchievement, count_user_correct_answers
 import json
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Sum, Count
 
 
 @csrf_exempt
@@ -85,7 +85,7 @@ def login_view(request):
 def profile_view(request):
     userid = request.GET.get("userid")
     if not userid:
-        return JsonResponse({"error": "userid is required"}, status=400)
+        return JsonResponse(data={"error": "userid is required"}, status=400)
 
     user = get_object_or_404(CustomUser, id=userid)
 
@@ -95,13 +95,27 @@ def profile_view(request):
         else None
     )
 
+    # Получение ачивок пользователя
+    user_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+    achievements = [
+        {
+            "title": ua.achievement.title,
+            "description": ua.achievement.description,
+            "image": request.build_absolute_uri(ua.achievement.image.url) if ua.achievement.image else None,
+            "date_earned": ua.date_earned,
+        }
+        for ua in user_achievements
+    ]
+
     data = {
         "id": user.id,
         "is_superuser": user.is_superuser,
         "username": user.username,
         "email": user.email,
         "profile_photo": profile_photo_url,
+        "achievements": achievements,  # Добавляем ачивки в ответ
     }
+
     return JsonResponse(data, status=200)
 
 
@@ -373,3 +387,57 @@ def check_answers(request, course_id):
 
     return JsonResponse({"error": "Метод не поддерживается"}, status=405)
 
+
+def get_user_achievements(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+        response_data = [
+            {
+                'title': ua.achievement.title,
+                'description': ua.achievement.description,
+                'image': ua.achievement.image.url if ua.achievement.image else None,
+                'date_earned': ua.date_earned,
+            }
+            for ua in achievements
+        ]
+        return JsonResponse({'achievements': response_data}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
+# Логика проверки достижения
+def check_and_award_achievements(user):
+    # 1. Первый курс
+    if not UserAchievement.objects.filter(user=user, achievement__condition='first_course').exists():
+        if QuizResult.objects.filter(user=user).exists():
+            achievement = Achievement.objects.get(condition='first_course')
+            UserAchievement.objects.create(user=user, achievement=achievement)
+
+    # 2. Топ-1 в рейтинге
+    if not UserAchievement.objects.filter(user=user, achievement__condition='top_1').exists():
+        user_correct = count_user_correct_answers(user)
+        top_user = User.objects.annotate(total_correct=Count('quizresult')).order_by('-total_correct').first()
+        if top_user == user:
+            achievement = Achievement.objects.get(condition='top_1')
+            UserAchievement.objects.create(user=user, achievement=achievement)
+
+    # 3. Все задачи курса выполнены верно
+    if not UserAchievement.objects.filter(user=user, achievement__condition='all_correct').exists():
+        completed_courses = Question.objects.filter(
+            questions__quizresult__user=user,
+            questions__quizresult__is_correct=True
+        ).distinct()
+        for course_form in completed_courses:
+            total_questions = course_form.questions.count()
+            correct_answers = QuizResult.objects.filter(user=user, question__course_form=course_form, is_correct=True).count()
+            if total_questions == correct_answers:
+                achievement = Achievement.objects.get(condition='all_correct')
+                UserAchievement.objects.create(user=user, achievement=achievement)
+
+    # 4. Три курса выполнены
+    if not UserAchievement.objects.filter(user=user, achievement__condition='three_courses').exists():
+        completed_forms = QuizResult.objects.filter(user=user, is_correct=True).values('course_form').distinct().count()
+        if completed_forms >= 3:
+            achievement = Achievement.objects.get(condition='three_courses')
+            UserAchievement.objects.create(user=user, achievement=achievement)

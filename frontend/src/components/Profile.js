@@ -7,6 +7,7 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [achievements, setAchievements] = useState([]); // Новый state для ачивок
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({ username: '', email: '', profile_photo: null });
     const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Profile = () => {
     };
 
     useEffect(() => {
-        const fetchProfile = () => {
+        const fetchProfile = async () => {
             const storedUser = localStorage.getItem('user');
 
             if (!storedUser) {
@@ -30,6 +31,21 @@ const Profile = () => {
             const userData = JSON.parse(storedUser);
             setUser(userData);
             setFormData({ username: userData.username, email: userData.email, profile_photo: null });
+
+            try {
+                // Загрузка ачивок
+                const response = await fetch(`http://127.0.0.1:8000/accounts/api/user_achievements/?userid=${userData.id}`);
+                const data = await response.json();
+                if (data.error) {
+                    setError(data.error);
+                } else {
+                    setAchievements(data.achievements || []); // Сохранение ачивок в state
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки ачивок:', err);
+                setError('Не удалось загрузить ачивки.');
+            }
+
             setLoading(false);
         };
 
@@ -145,6 +161,25 @@ const Profile = () => {
                             <button onClick={() => setIsEditing(true)}>Редактировать</button>
                             <button className="logout-button" onClick={handleLogout}>Выйти</button>
                         </>
+                    )}
+                    <h2>Ваши достижения</h2>
+                    {achievements.length > 0 ? (
+                        <div className="achievements-container">
+                            {achievements.map((achievement, index) => (
+                                <div key={index} className="achievement-card">
+                                    <img
+                                        src={achievement.image || 'default-achievement.png'}
+                                        alt={achievement.title}
+                                        className="achievement-image"
+                                    />
+                                    <h3>{achievement.title}</h3>
+                                    <p>{achievement.description}</p>
+                                    <p>Получено: {new Date(achievement.date_earned).toLocaleDateString()}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p>У вас пока нет достижений.</p>
                     )}
                 </>
             ) : (
