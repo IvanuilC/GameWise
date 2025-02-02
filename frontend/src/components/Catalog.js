@@ -9,8 +9,6 @@ import math from './math.jpg';
 const Catalog = () => {
   const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-
   const storedUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
@@ -26,23 +24,26 @@ const Catalog = () => {
 
   return (
     <div className="catalog">
-      <Navbar />    
+      <Navbar />
       <div className='catalog-content'>
+        <div className="courses-list">
+          {courses.map((course) => (
+            <div className='course-card' key={course.id}>
+              <h2>{course.title}</h2>
+              <img src={math} alt={course.title} className="course-image" />
+              <button onClick={() => handleCourseClick(course.id)} className='course-button'>
+                СОДЕРЖАНИЕ КУРСА
+              </button>
+            </div>
+          ))}
+        </div>
         {storedUser?.is_superuser && (
-          <li>
-            <button onClick={() => navigate(`/create-course`)}>Создать курс</button>
-          </li>
-        )}
-
-        {courses.map((course) => (
-          <div className='course-card' key={course.id}> 
-            <h2>{course.title}</h2>
-            <img src={math} alt={course.title} className="course-image" />
-            <button onClick={() => handleCourseClick(course.id)} className='course-button'>
-              ПЕРЕЙТИ К ИЗУЧЕНИЮ
+          <div className="create-course-container">
+            <button onClick={() => navigate(`/create-course`)} className="create-course-button">
+              Создать курс
             </button>
           </div>
-        ))}
+        )}
       </div>
       <Footer />
     </div>

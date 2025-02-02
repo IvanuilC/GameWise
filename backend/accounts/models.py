@@ -92,10 +92,9 @@ class QuizResult(models.Model):
 
 
 class Achievement(models.Model):
-    title = models.CharField(max_length=255)  # Название ачивки
-    description = models.TextField()  # За что выдается ачивка
-    image = models.ImageField(upload_to='achievements/', blank=True, null=True)  # Картинка
-    condition = models.CharField(max_length=255)  # Условие в виде кода (например, 'first_course', 'all_tasks_correct')
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    condition = models.CharField(max_length=255)
 
 
 class UserAchievement(models.Model):
@@ -105,9 +104,3 @@ class UserAchievement(models.Model):
 
     class Meta:
         unique_together = ('user', 'achievement')
-
-
-# Функция для подсчета правильных ответов пользователя
-def count_user_correct_answers(user):
-    from .models import QuizResult  # Предположительно, есть таблица QuizResult
-    return QuizResult.objects.filter(user=user, is_correct=True).count()

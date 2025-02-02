@@ -2,6 +2,8 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 import { UserContext } from './UserContext';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -32,24 +34,20 @@ const Profile = () => {
             setUser(userData);
             setFormData({ username: userData.username, email: userData.email, profile_photo: null });
 
-            const fetchAchievements = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/accounts/api/users/${user.id}/achievements/`);
+                const response = await fetch(`http://127.0.0.1:8000/accounts/api/users/${userData.id}/achievements-view/`);
                 const data = await response.json();
-
                 if (data.achievements) {
-                    setAchievements(data.achievements); // Если массив пустой, он просто сохранится
+                    setAchievements(data.achievements);
                 } else {
-                    throw new Error('Achievements data is missing.');
+                    setError('Не удалось загрузить достижения.');
                 }
-            } catch (error) {
-                console.error(error);
-                setError('Не удалось загрузить достижения.');
+            } catch (err) {
+                console.error('Ошибка при загрузке достижений:', err);
+                setError('Произошла ошибка при загрузке достижений.');
+            } finally {
+                setLoading(false);
             }
-        };
-
-
-            setLoading(false);
         };
 
         fetchProfile();
@@ -75,7 +73,7 @@ const Profile = () => {
         }
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/users/${user.id}/edit/`, {
+            const response = await fetch(`http://127.0.0.1:8000/accounts/api/users/${user.id}/edit/`, {
                 method: 'POST',
                 body: formDataToSend,
             });
@@ -116,11 +114,16 @@ const Profile = () => {
 
     return (
         <div className="profile-container">
-            <h1>Страница профиля</h1>
+            <Navbar />
             {user ? (
-                <>
+                <div className="profile-content">
+                    <img
+                        src={user.profile_photo || 'default-profile.png'}
+                        alt="Profile"
+                        className="profile-photo"
+                    />
                     {isEditing ? (
-                        <div>
+                        <div className="edit-form">
                             <label>
                                 Имя пользователя:
                                 <input
@@ -152,29 +155,21 @@ const Profile = () => {
                             <button onClick={() => setIsEditing(false)}>Отмена</button>
                         </div>
                     ) : (
-                        <>
-                            <img
-                                src={user.profile_photo || 'default-profile.png'}
-                                alt="Profile"
-                                className="profile-photo-large"
-                            />
+                        <div className="profile-details">
                             <h2>{user.username}</h2>
                             <p>Email: {user.email}</p>
-                            <button onClick={() => navigate('/home')}>На главную</button>
-                            <button onClick={() => setIsEditing(true)}>Редактировать</button>
-                            <button className="logout-button" onClick={handleLogout}>Выйти</button>
-                        </>
+                            <div className="profile-buttons">
+                                <button className="logout-button" onClick={() => navigate(`/home`)}>На главную</button>
+                                <button className="logout-button" onClick={() => setIsEditing(true)}>Редактировать</button>
+                                <button className="logout-button" onClick={handleLogout}>Выйти</button>
+                            </div>
+                        </div>
                     )}
                     <h2>Ваши достижения</h2>
                     {achievements.length > 0 ? (
                         <div className="achievements-container">
-                            {achievements.map((achievement, index) => (
-                                <div key={index} className="achievement-card">
-                                    <img
-                                        src={achievement.image || 'default-achievement.png'}
-                                        alt={achievement.title}
-                                        className="achievement-image"
-                                    />
+                            {achievements.map((achievement) => (
+                                <div key={achievement.id} className="achievement-card">
                                     <h3>{achievement.title}</h3>
                                     <p>{achievement.description}</p>
                                     <p>Получено: {new Date(achievement.date_earned).toLocaleDateString()}</p>
@@ -184,10 +179,11 @@ const Profile = () => {
                     ) : (
                         <p>У вас пока нет достижений.</p>
                     )}
-                </>
+                </div>
             ) : (
                 <p>Данные профиля не найдены.</p>
             )}
+            <Footer />
         </div>
     );
 };
