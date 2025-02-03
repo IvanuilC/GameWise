@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, get_user_model
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
@@ -483,3 +484,37 @@ def user_achievements_view(request, user_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+@csrf_exempt
+@login_required
+def edit_course(request, course_id):
+    if request.method in ["PUT", "PATCH"]:
+        try:
+            course = get_object_or_404(Course, id=course_id)
+
+            # Проверяем, что пользователь является автором курса или суперпользователем
+            if request.user != course.author and not request.user.is_superuser:
+                return JsonResponse({"error": "You do not have permission to edit this course"}, status=403)
+
+            data = json.loads(request.body.decode("utf-8"))
+
+            # Обновляем поля курса, если они переданы в запросе
+            if "title" in data:
+                course.title = data["title"]
+            if "description" in data:
+                course.description = data["description"]
+            if "tags" in data:
+                course.tags = data["tags"]
+            if "content" in data:
+                course.content = data["content"]
+
+            course.save()
+
+            return JsonResponse({"message": "Course updated successfully"}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)

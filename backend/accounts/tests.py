@@ -1,5 +1,8 @@
 from django.test import TestCase
-from models import (
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+from .models import (
     CustomUser,
     Course,
     Enrollment,
@@ -143,3 +146,34 @@ class UserAchievementTestCase(TestCase):
     def test_user_achievement_creation(self):
         self.assertEqual(self.user_achievement.user, self.user)
         self.assertEqual(self.user_achievement.achievement, self.achievement)
+
+class CourseEditTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(
+            username="author",
+            email="author@example.com",
+            password="password123"
+        )
+        self.course = Course.objects.create(
+            title="Основы Python",
+            description="Курс для начинающих",
+            tags="программирование, Python",
+            content="Введение в Python",
+            author=self.user
+        )
+        self.client.force_login(self.user)
+        self.client.force_authenticate(user=self.user)
+
+    def test_edit_course(self):
+        url = reverse("edit_course", args=[self.course.id])
+        data = {
+            "title": "Продвинутый Python",
+            "description": "Курс для продвинутых разработчиков",
+            "tags": "Python, ООП, асинхронность",
+            "content": "ООП в Python, асинхронное программирование, декораторы"
+        }
+        response = self.client.put(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.course.refresh_from_db()
+        self.assertEqual(self.course.title, "Продвинутый Python")
