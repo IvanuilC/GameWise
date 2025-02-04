@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
-from .models import CustomUser, Course, Enrollment, Option, Question, QuizResult, Achievement, UserAchievement
+from .models import CustomUser, Course, Enrollment, Option, Question, QuizResult, Achievement, UserAchievement, Form
 import json
 from django.db.models import Sum, Count, F
 
@@ -294,43 +294,138 @@ def count_user_correct_answers(request):
 
 
 @csrf_exempt
-def add_form(request, course_id):
+def create_form(request, course_id):
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            course = Course.objects.get(id=course_id)
+            course = get_object_or_404(Course, id=course_id)
+            data = request.POST
+            files = request.FILES
 
-            for question_data in data["questions"]:
-                question = Question.objects.create(course=course, text=question_data["text"])
+            form = Form.objects.create(
+                course=course,
+                title=data.get("title"),
+                description=data.get("description"),
+            )
 
-                for option_data in question_data["options"]:
-                    Option.objects.create(
-                        question=question,
-                        text=option_data["text"],
-                        is_correct=option_data["is_correct"]
-                    )
-            return JsonResponse({"message": "Форма успешно добавлена!"})
+            if "image" in files:
+                form.image = files["image"]
+                form.save()
+
+            return JsonResponse({"message": "Form created successfully", "form_id": form.id}, status=201)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Метод не поддерживается"}, status=405)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
+@csrf_exempt
+def get_course_forms(request, course_id):
+    if request.method == "GET":
+        try:
+            course = get_object_or_404(Course, id=course_id)
+            forms = course.forms.all().order_by("-id")  # Сортировка по id в порядке убывания
+            response_data = []
+
+            for form in forms:
+                form_data = {
+                    "id": form.id,
+                    "title": form.title,
+                    "description": form.description,
+                    "image": request.build_absolute_uri(form.image.url) if form.image else None,
+                }
+                response_data.append(form_data)
+
+            return JsonResponse({"forms": response_data}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def add_question_to_form(request, form_id):
+    if request.method == "POST":
+        try:
+            form = get_object_or_404(Form, id=form_id)
+            data = request.POST
+            files = request.FILES
+
+            question = Question.objects.create(
+                form=form,
+                text=data.get("text"),
+            )
+
+            if "image" in files:
+                question.image = files["image"]
+                question.save()
+
+            return JsonResponse({"message": "Question added successfully", "question_id": question.id}, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def add_option_to_question(request, question_id):
+    if request.method == "POST":
+        try:
+            question = get_object_or_404(Question, id=question_id)
+            data = request.POST
+            files = request.FILES
+
+            option = Option.objects.create(
+                question=question,
+                text=data.get("text"),
+                is_correct=data.get("is_correct", False),
+            )
+
+            if "image" in files:
+                option.image = files["image"]
+                option.save()
+
+            return JsonResponse({"message": "Option added successfully", "option_id": option.id}, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
 def get_course_questions(request, course_id):
     if request.method == "GET":
         try:
             course = Course.objects.get(id=course_id)
-            questions = course.questions.all()
+            forms = course.forms.all()  # Получаем все формы для курса
             response_data = []
 
-            for question in questions:
-                options = question.options.all()
-                response_data.append({
-                    'id': question.id,
-                    'text': question.text,
-                    'options': [{'id': option.id, 'text': option.text} for option in options],
-                })
+            for form in forms:
+                form_data = {
+                    "form_id": form.id,
+                    "title": form.title,
+                    "description": form.description,
+                    "image": request.build_absolute_uri(form.image.url) if form.image else None,
+                    "questions": []
+                }
 
-            return JsonResponse({"questions": response_data})
+                for question in form.questions.all():  # Получаем все вопросы для формы
+                    question_data = {
+                        "id": question.id,
+                        "text": question.text,
+                        "image": request.build_absolute_uri(question.image.url) if question.image else None,
+                        "options": []
+                    }
+
+                    for option in question.options.all():  # Получаем все варианты ответов для вопроса
+                        option_data = {
+                            "id": option.id,
+                            "text": option.text,
+                            "is_correct": option.is_correct,
+                            "image": request.build_absolute_uri(option.image.url) if option.image else None,
+                        }
+                        question_data["options"].append(option_data)
+
+                    form_data["questions"].append(question_data)
+
+                response_data.append(form_data)
+
+            return JsonResponse({"forms": response_data}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Метод не поддерживается"}, status=405)
@@ -355,10 +450,18 @@ def check_answers(request, course_id):
                 question = Question.objects.get(id=question_id)
                 total_questions += 1
 
+                # Проверяем, что вопрос принадлежит курсу
+                if question.form.course != course:
+                    return JsonResponse({"error": f"Question {question_id} does not belong to this course"}, status=400)
+
                 correct_option = question.options.filter(is_correct=True).first()
                 if correct_option and correct_option.id == selected_option_id:
                     correct_answers += 1
 
+            # Начисляем опыт пользователю
+            user.add_experience(correct_answers)
+
+            # Сохраняем результат теста
             QuizResult.objects.create(
                 user=user,
                 course=course,
@@ -368,7 +471,9 @@ def check_answers(request, course_id):
             return JsonResponse({
                 "correct": correct_answers,
                 "total": total_questions,
-                "score": f"Всего правильных ответов {correct_answers} из {total_questions} вопросов"
+                "score": f"Всего правильных ответов {correct_answers} из {total_questions} вопросов",
+                "level": user.level,  # Возвращаем текущий уровень пользователя
+                "experience": user.experience,  # Возвращаем текущий опыт пользователя
             })
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)

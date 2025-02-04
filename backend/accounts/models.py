@@ -88,15 +88,33 @@ class Enrollment(models.Model):
     )
 
 
+class Form(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="forms")
+    title = models.CharField(max_length=255, verbose_name="Название формы")
+    description = models.TextField(blank=True, null=True, verbose_name="Описание формы")
+    image = models.ImageField(upload_to="form_images/", blank=True, null=True, verbose_name="Изображение формы")
+
+    def __str__(self):
+        return self.title
+
+
 class Question(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="questions")
-    text = models.CharField(max_length=255)
+    form = models.ForeignKey(Form, on_delete=models.CASCADE, related_name="questions", default=1)
+    text = models.CharField(max_length=255, verbose_name="Текст вопроса")
+    image = models.ImageField(upload_to="question_images/", blank=True, null=True, verbose_name="Изображение вопроса")
+
+    def __str__(self):
+        return self.text
 
 
 class Option(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="options")
-    text = models.CharField(max_length=255)
-    is_correct = models.BooleanField(default=False)
+    text = models.CharField(max_length=255, verbose_name="Текст варианта")
+    is_correct = models.BooleanField(default=False, verbose_name="Правильный вариант")
+    image = models.ImageField(upload_to="option_images/", blank=True, null=True, verbose_name="Изображение варианта")
+
+    def __str__(self):
+        return self.text
 
 
 class QuizResult(models.Model):
