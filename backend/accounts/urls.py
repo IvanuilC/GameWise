@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/achievements/', views.create_achievements, name='create_achievements'),
     path('api/users/<int:user_id>/achievements-view/', views.user_achievements_view, name='user_achievements_view'),
     path("api/courses/<int:course_id>/edit/", views.edit_course, name="edit_course"),  # Новый маршрут
+    path("api/users/<int:user_id>/notifications/", views.get_notifications, name="get_notifications"),
 ]

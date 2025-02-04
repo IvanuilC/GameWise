@@ -101,6 +101,8 @@ def profile_view(request):
         "username": user.username,
         "email": user.email,
         "profile_photo": profile_photo_url,
+        "level": user.level,  # Новое поле
+        "experience": user.experience,  # Новое поле
     }
     return JsonResponse(data, status=200)
 
@@ -517,4 +519,28 @@ def edit_course(request, course_id):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_notifications(request, user_id):
+    if request.method == "GET":
+        try:
+            user = get_object_or_404(CustomUser, id=user_id)
+            notifications = user.notifications.order_by("-created_at").values("message", "created_at")
+            return JsonResponse({"notifications": list(notifications)}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_level_history(request, user_id):
+    if request.method == "GET":
+        try:
+            user = get_object_or_404(CustomUser, id=user_id)
+            history = user.level_history.order_by("-achieved_at").values("level", "achieved_at")
+            return JsonResponse({"level_history": list(history)}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Method not allowed"}, status=405)

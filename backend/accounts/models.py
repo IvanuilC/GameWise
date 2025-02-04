@@ -27,9 +27,9 @@ class CustomUser(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    profile_photo = models.ImageField(
-        upload_to="profile_photos/", blank=True, null=True
-    )
+    profile_photo = models.ImageField(upload_to="profile_photos/", blank=True, null=True)
+    level = models.PositiveIntegerField(default=1, verbose_name="Уровень")  # Новое поле
+    experience = models.PositiveIntegerField(default=0, verbose_name="Опыт")  # Новое поле
 
     objects = CustomUserManager()
 
@@ -44,6 +44,23 @@ class CustomUser(AbstractBaseUser):
 
     def has_module_perms(self, a):
         return self.is_superuser
+
+    def add_experience(self, points):
+        """
+        Добавляет опыт пользователю и повышает уровень, если достигнут порог.
+        """
+        self.experience += points
+        required_experience = self.level * 5  # Например, для повышения уровня нужно level * 5 очков
+        while self.experience >= required_experience:
+            self.level += 1
+            self.experience -= required_experience
+            required_experience = self.level * 5  # Обновляем порог для следующего уровня
+            # Создаем уведомление о повышении уровня
+            Notification.objects.create(
+                user=self,
+                message=f"Поздравляем! Вы достигли уровня {self.level}."
+            )
+        self.save()
 
 
 class Course(models.Model):
@@ -104,3 +121,13 @@ class UserAchievement(models.Model):
 
     class Meta:
         unique_together = ('user', 'achievement')
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="notifications")
+    message = models.CharField(max_length=255, verbose_name="Сообщение")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    def __str__(self):
+        return f"{self.user.username}: {self.message}"
+

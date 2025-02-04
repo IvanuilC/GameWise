@@ -1,4 +1,5 @@
 from django.test import TestCase
+from rest_framework.test import APITestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -11,7 +12,9 @@ from .models import (
     QuizResult,
     Achievement,
     UserAchievement,
+    Notification,
 )
+
 
 class CustomUserTestCase(TestCase):
     def setUp(self):
@@ -35,6 +38,7 @@ class CustomUserTestCase(TestCase):
         self.assertTrue(admin.is_staff)
         self.assertTrue(admin.is_superuser)
 
+
 class CourseTestCase(TestCase):
     def setUp(self):
         self.author = CustomUser.objects.create_user(
@@ -55,6 +59,7 @@ class CourseTestCase(TestCase):
         self.assertEqual(self.course.description, "A test course description")
         self.assertEqual(self.course.tags, "test,course")
 
+
 class EnrollmentTestCase(TestCase):
     def setUp(self):
         self.user = CustomUser.objects.create_user(
@@ -74,6 +79,7 @@ class EnrollmentTestCase(TestCase):
         self.assertEqual(self.enrollment.user, self.user)
         self.assertEqual(self.enrollment.course, self.course)
 
+
 class QuestionAndOptionTestCase(TestCase):
     def setUp(self):
         self.course = Course.objects.create(
@@ -91,6 +97,7 @@ class QuestionAndOptionTestCase(TestCase):
         self.assertEqual(self.question.text, "What is Django?")
         self.assertEqual(self.option.text, "A web framework")
         self.assertTrue(self.option.is_correct)
+
 
 class QuizResultTestCase(TestCase):
     def setUp(self):
@@ -114,6 +121,7 @@ class QuizResultTestCase(TestCase):
         self.assertEqual(self.quiz_result.course, self.course)
         self.assertEqual(self.quiz_result.correct_answers, 8)
 
+
 class AchievementTestCase(TestCase):
     def setUp(self):
         self.achievement = Achievement.objects.create(
@@ -126,6 +134,7 @@ class AchievementTestCase(TestCase):
         self.assertEqual(self.achievement.title, "First Course Completion")
         self.assertEqual(self.achievement.description, "Complete your first course")
         self.assertEqual(self.achievement.condition, "complete_course_1")
+
 
 class UserAchievementTestCase(TestCase):
     def setUp(self):
@@ -146,6 +155,7 @@ class UserAchievementTestCase(TestCase):
     def test_user_achievement_creation(self):
         self.assertEqual(self.user_achievement.user, self.user)
         self.assertEqual(self.user_achievement.achievement, self.achievement)
+
 
 class CourseEditTestCase(TestCase):
     def setUp(self):
@@ -177,3 +187,59 @@ class CourseEditTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.course.refresh_from_db()
         self.assertEqual(self.course.title, "Продвинутый Python")
+
+
+class NotificationTestCase(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(username="testuser", email="test@example.com", password="password")
+        self.client.force_authenticate(user=self.user)
+
+    def test_notification_created_on_level_up(self):
+        # Добавляем опыт, чтобы повысить уровень
+        self.user.add_experience(5)  # Уровень повысится с 1 до 2
+
+        # Проверяем, что уведомление создано
+        notification = Notification.objects.filter(user=self.user).first()
+        self.assertIsNotNone(notification)
+        self.assertEqual(notification.message, "Поздравляем! Вы достигли уровня 2.")
+
+
+class LevelSystemTestCase(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(username="testuser", email="test@example.com", password="password")
+        self.client.force_authenticate(user=self.user)
+
+    def test_level_up_with_increasing_experience(self):
+        # Добавляем опыт для повышения уровня
+        self.user.add_experience(5)  # Уровень 1 -> 2
+        self.assertEqual(self.user.level, 2)
+        self.assertEqual(self.user.experience, 0)
+
+        # Добавляем ещё опыт для следующего уровня
+        self.user.add_experience(10)  # Уровень 2 -> 3
+        self.assertEqual(self.user.level, 3)
+        self.assertEqual(self.user.experience, 0)
+
+        # Добавляем недостаточно опыта для следующего уровня
+        self.user.add_experience(7)  # Нужно 15 для уровня 4
+        self.assertEqual(self.user.level, 3)
+        self.assertEqual(self.user.experience, 7)
+
+
+class NotificationAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(username="testuser", email="test@example.com", password="password")
+        self.client.force_authenticate(user=self.user)
+
+    def test_get_notifications(self):
+        # Создаем уведомление
+        Notification.objects.create(user=self.user, message="Тестовое уведомление")
+
+        # Отправляем запрос на получение уведомлений
+        url = reverse("get_notifications", args=[self.user.id])
+        response = self.client.get(url)
+
+        # Проверяем ответ
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["notifications"]), 1)
+        self.assertEqual(response.json()["notifications"][0]["message"], "Тестовое уведомление")
