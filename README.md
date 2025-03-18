@@ -146,6 +146,13 @@ DOCKERHUB_TOKEN="sample_token"
 | api/courses/{course_id}/check-answers/ | проверяет корректность ответов, данных пользователем |
 | api/achievements/ | общий список ачивок |
 | api/users/{user_id}/achievements-view/ | показать ачивки конкретного пользователя |
+| /api/courses/{int:course_id}/questions/ | получить формы курса |
+| /api/courses/{int:course_id}/check-answers/ | проверить корректность ответа |
+| /api/courses/{int:course_id}/edit/ | редактирование курса |
+| /api/users/{int:user_id}/notifications/ | вывод уведомлений |
+| /api/courses/{int:course_id}/forms/create/ | создание формы |
+| /api/forms/{int:form_id}/questions/add/ | добавление вопроса в форму |
+| /api/questions/{int:question_id}/options/add/ | добавление ответа к вопросу |
 
 # Технологии разработки
 ## Язык программирования
