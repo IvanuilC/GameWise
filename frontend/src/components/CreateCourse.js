@@ -24,36 +24,26 @@ const CreateCourse = () => {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/accounts/api/courses/create/',
-        {
-          title,
-          description,
-          tags,
-          content,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      alert(response.data.message);
-      navigate('/catalog');
-    } catch (error) {
-      alert(
-        error.response?.data?.error || 'Ошибка при создании курса. Попробуйте позже.'
-      );
-    }
-  };
-
-  if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>;
+  try {
+    const response = await axios.post(
+      'http://127.0.0.1:8000/accounts/api/courses/create/',
+      {
+        title,
+        description,
+        tags: tags.split(',').map(tag => tag.trim()), // Преобразуем в массив
+        content,
+      },
+    );
+    alert(response.data.message);
+    navigate('/catalog');
+  } catch (error) {
+    console.error('Ошибка:', error.response?.data);
+    alert(error.response?.data?.error || 'Ошибка при создании курса. Попробуйте позже.');
   }
+};
 
   return (
     <div className="create-course">

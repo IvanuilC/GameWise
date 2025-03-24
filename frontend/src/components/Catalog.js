@@ -28,7 +28,7 @@ const Catalog = () => {
       <div className='catalog-content'>
         <div className="courses-list">
           {courses.map((course) => (
-            <div className='course-card' key={course.id}>
+            <div className='course-card' key={course.id}> 
               <h2>{course.title}</h2>
               <img src={math} alt={course.title} className="course-image" />
               <button onClick={() => handleCourseClick(course.id)} className='course-button'>

@@ -4,6 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 const CourseForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState(null);
   const [questions, setQuestions] = useState([
     { text: '', options: [{ text: '', is_correct: false }] },
   ]);
@@ -33,23 +36,19 @@ const CourseForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const requestData = {
-      questions: questions.map(question => ({
-        text: question.text,
-        options: question.options.map(option => ({
-          text: option.text,
-          is_correct: option.is_correct
-        }))
-      }))
-    };
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    if (image) {
+      formData.append('image', image);
+    }
+
+    formData.append('questions', JSON.stringify(questions));
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/accounts/api/courses/${id}/add-form/`, {
+      const response = await fetch(`http://127.0.0.1:8000/accounts/api/courses/${id}/forms/create/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
+        body: formData,
       });
 
       const data = await response.json();
@@ -68,6 +67,31 @@ const CourseForm = () => {
     <div>
       <h2>Добавить форму для курса</h2>
       <form onSubmit={handleSubmit}>
+        <div>
+          <label>Название формы</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Введите название формы"
+          />
+        </div>
+        <div>
+          <label>Описание формы</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Введите описание формы"
+          />
+        </div>
+        <div>
+          <label>Изображение формы</label>
+          <input
+            type="file"
+            onChange={(e) => setImage(e.target.files[0])}
+          />
+        </div>
         {questions.map((question, qIndex) => (
           <div key={qIndex}>
             <label>Вопрос {qIndex + 1}</label>

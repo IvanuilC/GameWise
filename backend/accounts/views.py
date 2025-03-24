@@ -301,15 +301,33 @@ def create_form(request, course_id):
             data = request.POST
             files = request.FILES
 
+            # Создаем форму
             form = Form.objects.create(
                 course=course,
                 title=data.get("title"),
                 description=data.get("description"),
             )
 
+            # Если есть изображение, сохраняем его
             if "image" in files:
                 form.image = files["image"]
                 form.save()
+
+            # Обрабатываем вопросы и ответы
+            questions_data = json.loads(data.get("questions", "[]"))
+            for question_data in questions_data:
+                question = Question.objects.create(
+                    form=form,
+                    text=question_data.get("text"),
+                )
+
+                # Обрабатываем варианты ответов
+                for option_data in question_data.get("options", []):
+                    Option.objects.create(
+                        question=question,
+                        text=option_data.get("text"),
+                        is_correct=option_data.get("is_correct", False),
+                    )
 
             return JsonResponse({"message": "Form created successfully", "form_id": form.id}, status=201)
         except Exception as e:
@@ -592,39 +610,34 @@ def user_achievements_view(request, user_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
+
 @csrf_exempt
-@login_required
 def edit_course(request, course_id):
-    if request.method in ["PUT", "PATCH"]:
+    if request.method == "GET":
+        course = get_object_or_404(Course, id=course_id)
+        return JsonResponse({
+            "title": course.title,
+            "description": course.description,
+            "tags": course.tags,
+            "content": course.content
+        })
+
+    elif request.method in ["PUT", "PATCH"]:
         try:
+            data = json.loads(request.body)
             course = get_object_or_404(Course, id=course_id)
 
-            # Проверяем, что пользователь является автором курса или суперпользователем
-            if request.user != course.author and not request.user.is_superuser:
-                return JsonResponse({"error": "You do not have permission to edit this course"}, status=403)
-
-            data = json.loads(request.body.decode("utf-8"))
-
-            # Обновляем поля курса, если они переданы в запросе
-            if "title" in data:
-                course.title = data["title"]
-            if "description" in data:
-                course.description = data["description"]
-            if "tags" in data:
-                course.tags = data["tags"]
-            if "content" in data:
-                course.content = data["content"]
-
+            # Обновление полей
+            course.title = data.get('title', course.title)
+            course.description = data.get('description', course.description)
+            course.tags = data.get('tags', course.tags)
+            course.content = data.get('content', course.content)
             course.save()
 
-            return JsonResponse({"message": "Course updated successfully"}, status=200)
+            return JsonResponse({"status": "success"})
 
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON payload"}, status=400)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+            return JsonResponse({"error": str(e)}, status=400)
 
 
 @csrf_exempt

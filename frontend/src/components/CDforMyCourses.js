@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import './CourseDetail.css';
+import './CDforMyCourses.css';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -27,21 +27,17 @@ const CourseDetail = () => {
   if (loading) return <div className="loading">Загрузка...</div>;
 
   return (
-    <div className="course-detail">
+    <div className="my-course-detail">
       <Navbar />
-      <div className="course-content">
+      <div className="my-course-content">
         <h1>{course.title}</h1>
         <p>{course.description}</p>
         <h2>Содержание курса:</h2>
-        <div className="course-content-details">{course.content}</div>
-        <div className="course-buttons">
+        <div className="my-course-content-details">{course.content}</div>
             {storedUser?.is_superuser && (
-              <li>
-                <button onClick={() => navigate(`/courses/${id}/add-form`)}>Добавить форму</button>
-              </li>
+                <button className="my-course-button" onClick={() => navigate(`/courses/${id}/add-form`)}>Добавить форму</button>
             )}
-            <button onClick={() => navigate(`/courses/${id}/quiz`)}>Пройти тест</button>
-        </div>
+            <button className="my-course-button" onClick={() => navigate(`/courses/${id}/quiz`)}>Пройти тест</button>
       </div>
       <Footer />
     </div>
