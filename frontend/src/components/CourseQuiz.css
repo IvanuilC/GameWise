@@ -3,54 +3,93 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: linear-gradient(to bottom, #FFD4D2, #FF6E79);
+    background:#FFD4D2;
     min-height: 100vh;
+    padding: 20px;
 }
 
-h2 {
-    color: #462E4C;
-    margin-bottom: 20px;
-    font-family: 'P2', sans-serif;
-}
-
-.question-block {
-    width: 40%;
+.quiz-form {
+    width: 90%;
     background-color: white;
     border-radius: 10px;
-    padding: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.quiz-form h3 {
+    color: #462E4C;
+    font-family: 'P2', sans-serif;
     margin-bottom: 15px;
 }
 
-.question-text {
+.quiz-form p {
     color: #462E4C;
+    font-size: 16px;
+    margin-bottom: 20px;
 }
 
-.options-container {
-    margin-top: 10px;
+.question-block {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #fff5f5;
+    border-radius: 8px;
+}
+
+.question-block p {
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
 .option-label {
-    display: block;
-    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    padding: 10px;
+    background-color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.option-label:hover {
+    background-color: #FFD4D2;
+}
+
+.option-label input[type="radio"] {
+    margin-right: 10px;
+    accent-color: #FF6E79;
+}
+
+.quiz-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 15px 0;
 }
 
 .submit-button,
 .back-button {
-    background-color: transparent;
-    font-weight: bold;
-    color: #462E4C;
-    box-shadow: 0px -6px 0 #462E4C inset;
+    background-color: #FF6E79;
+    color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 25px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 13px;
-    margin-top: 10px;
-    margin-right: 10px;
-    font-family: 'P2', sans-serif;
+    font-size: 16px;
+    margin: 10px;
+    transition: background-color 0.3s;
 }
 
 .submit-button:hover,
 .back-button:hover {
-    color: #FFD4D2;
-    box-shadow: 0px -6px 0 #FFD4D2 inset;
+    background-color: #FFD4D2;
+}
+
+.loading,
+.error-message {
+    color: #462E4C;
+    font-size: 18px;
+    text-align: center;
+    padding: 20px;
 }

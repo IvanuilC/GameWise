@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import './CourseQuiz.css';
 
 const CourseQuiz = () => {
   const { id } = useParams();
@@ -88,29 +89,31 @@ const CourseQuiz = () => {
   }
 
   return (
-    <div>
+    <div className="course-quiz">
       <h2>Пройти тест</h2>
       {forms.map((form) => (
-        <div key={form.form_id}>
+        <div className="quiz-form" key={form.form_id}>
           <h3>{form.title}</h3>
           <p>{form.description}</p>
-          {form.image && <img src={form.image} alt={form.title} style={{ maxWidth: '100%' }} />}
+          {form.image && <img src={form.image} alt={form.title} className="quiz-image" />}
+          
           {form.questions && form.questions.length > 0 ? (
             form.questions.map((question) => (
-              <div key={question.id}>
+              <div className="question-block" key={question.id}>
                 <p>{question.text}</p>
-                {question.image && <img src={question.image} alt={question.text} style={{ maxWidth: '100%' }} />}
+                {question.image && <img src={question.image} alt={question.text} className="quiz-image" />}
+                
                 {question.options && question.options.length > 0 ? (
                   question.options.map((option) => (
-                    <label key={option.id}>
+                    <label className="option-label" key={option.id}>
                       <input
                         type="radio"
                         name={`question-${question.id}`}
                         value={option.id}
                         onChange={() => handleAnswerChange(question.id, option.id)}
                       />
-                      {option.text}
-                      {option.image && <img src={option.image} alt={option.text} style={{ maxWidth: '100%' }} />}
+                      <span>{option.text}</span>
+                      {option.image && <img src={option.image} alt={option.text} className="quiz-image" />}
                     </label>
                   ))
                 ) : (
@@ -123,8 +126,13 @@ const CourseQuiz = () => {
           )}
         </div>
       ))}
-      <button onClick={handleSubmit}>Отправить ответы</button>
-      <button onClick={() => navigate(`/my-courses/${id}`)}>Вернуться к курсу</button>
+      
+      <div className="button-group">
+        <button className="submit-button" onClick={handleSubmit}>Отправить ответы</button>
+        <button className="back-button" onClick={() => navigate(`/my-courses/${id}`)}>
+          Вернуться к курсу
+        </button>
+      </div>
     </div>
   );
 };

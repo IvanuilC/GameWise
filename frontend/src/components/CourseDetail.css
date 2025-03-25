@@ -2,54 +2,85 @@
     width: 100%;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    background: #FFD4D2;
+    min-height: 100vh;
 }
 
 .course-content {
     width: 90%;
-    background: linear-gradient(to bottom, #FFD4D2, #FF6E79);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin: 20px auto;
+    background-color: white;
     border-radius: 10px;
     padding: 20px;
-    min-height: 100vh;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
 }
 
-.course-content h1 {
+.course-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: 20px; 
+}
+
+.course-header h1 {
     color: #462E4C;
     font-family: 'P2', sans-serif;
+}
+
+.edit-course-button {
+    background-color: #FF6E79; 
+    color: white; 
+    border: none;
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 16px; 
+}
+
+.edit-course-button:hover {
+    background-color: #FFD4D2;
 }
 
 .course-content p {
-    color: #462E4C;
-    font-weight: bold;
-    font-size: 20px;
-    text-align: justify;
+    color: #462E4C; 
+    font-size: 20px; 
+    text-align: justify; 
 }
 
 .course-content h2 {
-    color: #462E4C;
-    margin-top: 20px;
+    color: #462E4C; 
+    margin-top: 20px; 
     font-family: 'P2', sans-serif;
+}
+
+.course-content-details {
+    margin-top: 10px;
 }
 
 .in-course-button {
-    border-radius: 0px;
-    color: #462E4C;
-    transition: .2s linear;
-    background: transparent;
-    text-decoration: none;
-    display: flex;
+    background-color: #FFD4D2; 
+    color: #462E4C; 
+    border: none;
+    padding: 15px 30px; 
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 18px; 
     margin-top: 20px;
-    margin-right: 10px;
-    padding: 10px;
-    padding-left: 0px;
-    border: 2px solid transparent;
-    box-shadow: 0px -6px 0 #462E4C inset;
-    font-family: 'P2', sans-serif;
-    font-size: 15px;
+    transition: background-color 0.3s;
 }
 
 .in-course-button:hover {
-    color: #FF6E79;
-    box-shadow: 0px -6px 0 #FF6E79 inset;
+    background-color: #FF6E79; 
+}
+
+.in-course-button[disabled] {
+    background-color: #ddd; 
+    cursor: not-allowed;
+}
+
+.loading,
+.error-message {
+    color: #462E4C;
+    font-size: 18px;
 }
